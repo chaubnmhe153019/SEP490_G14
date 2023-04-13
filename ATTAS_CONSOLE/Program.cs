@@ -5,8 +5,11 @@ using Microsoft.Office.Interop.Excel;
 using Range = Microsoft.Office.Interop.Excel.Range;
 using System.Configuration;
 
-string inputExcelFilePath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\inputCF_SU23_NEW.xlsx";
-string outputExcelFolderPath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\results";
+string inputExcelFilePath = "";
+string outputExcelFolderPath = "";
+bool inputPathFlag = false;
+bool outputPathFlag = false;
+
 
 ATTAS_ORTOOLS attas = new ATTAS_ORTOOLS();
 
@@ -14,6 +17,7 @@ string[] classNames = Array.Empty<string>();
 string[] slotNames = Array.Empty<string>();
 string[] instructorNames = Array.Empty<string>();
 string[] subjectNames = Array.Empty<string>();
+string[] areaNames = Array.Empty<string>();
 
 attas.objOption = ConfigurationManager.AppSettings["objOption"].Split(',').Select(int.Parse).ToArray();
 attas.objWeight = ConfigurationManager.AppSettings["objWeight"].Split(',').Select(int.Parse).ToArray();
@@ -23,10 +27,32 @@ attas.strategyOption = int.Parse(ConfigurationManager.AppSettings["strategy"]);
 bool read = false;
 List<List<(int, int)>>? results = null;
 
-string inputPath = AnsiConsole.Prompt(new TextPrompt<string>(" Input file path: "));
-string outputPath = AnsiConsole.Prompt(new TextPrompt<string>(" Output path: "));
+do
+{
+    inputExcelFilePath = $@"{AnsiConsole.Prompt(new TextPrompt<string>(" Input file path: "))}";
+    inputPathFlag = File.Exists(inputExcelFilePath);
+    if (!inputPathFlag)
+        AnsiConsole.Markup("[red]Input File Doesn't Existed[/]\n");
+}
+while (!inputPathFlag);
+do
+{
+    outputExcelFolderPath = AnsiConsole.Prompt(new TextPrompt<string>(" Output path: "));
+    outputPathFlag = Directory.Exists(outputExcelFolderPath);
+    if(!outputPathFlag)
+        AnsiConsole.Markup("[red]Output Path Doesn't Existed[/]\n");
+}
+while (!outputPathFlag);
 
-read = readInputExcel(inputExcelFilePath, attas, ref classNames, ref slotNames, ref instructorNames, ref subjectNames);
+/*
+ *  * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\test.xlsx"
+ * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\InputCF_SU23.xlsx"
+ * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\InputBUG.xlsx"
+inputExcelFilePath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\test.xlsx";
+outputExcelFolderPath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\results";*/
+
+
+read = readInputExcel(inputExcelFilePath, attas, ref classNames, ref slotNames, ref instructorNames, ref subjectNames,ref areaNames);
 cleanCOM();
 if (read)
 {
@@ -34,7 +60,7 @@ if (read)
     writeOutputExcel(outputExcelFolderPath, attas, results, classNames, slotNames, instructorNames, subjectNames);
     cleanCOM();
 }
-static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] classNames,ref string[] slotNames,ref string[] instructorNames,ref string[] subjectNames)
+static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] classNames,ref string[] slotNames,ref string[] instructorNames,ref string[] subjectNames,ref string[] areaNames)
 {
     Application? oXL = null;
     Workbook? oWB = null;
@@ -43,6 +69,10 @@ static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] cla
         AnsiConsole.Markup($"\nImport Data From [underline green]{inputPath}[/]\n\n");
         oXL = new Application();
         oWB = oXL.Workbooks.Open(inputPath);
+        if(oWB.Sheets.Count < 13)
+        {
+            throw new Exception($"{oWB.Sheets.Count}/13 sheets found!");
+        }
         Worksheet oWS_inputInfo = oWB.Sheets[1];
         Worksheet oWS_tasks = oWB.Sheets[2];
         Worksheet oWS_slotConflict = oWB.Sheets[3];
@@ -56,41 +86,90 @@ static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] cla
         Worksheet oWS_instructorPreassign = oWB.Sheets[11];
         Worksheet oWS_areaDistance = oWB.Sheets[12];
         Worksheet oWS_areaSlotCoefficient = oWB.Sheets[13];
-        attas.numTasks = (int)oWS_inputInfo.Cells[1, 2].Value2;
-        attas.numInstructors = (int)oWS_inputInfo.Cells[2, 2].Value2;
-        attas.numSlots = (int)oWS_inputInfo.Cells[3, 2].Value2;
-        attas.numDays = (int)oWS_inputInfo.Cells[4, 2].Value2;
-        attas.numTimes = (int)oWS_inputInfo.Cells[5, 2].Value2;
-        attas.numSegments = (int)oWS_inputInfo.Cells[6, 2].Value2;
-        int numSlotSegmentRules = (int)oWS_inputInfo.Cells[7, 2].Value2;
-        attas.numSubjects = (int)oWS_inputInfo.Cells[8, 2].Value2;
-        attas.numAreas = (int)oWS_inputInfo.Cells[9, 2].Value2;
-        attas.numBackupInstructors = (int)oWS_inputInfo.Cells[10, 2].Value2;
+
+        int numSlotSegmentRules = 0;
+
+        try
+        {
+            attas.numTasks = (int)oWS_inputInfo.Cells[1, 2].Value2;
+            attas.numInstructors = (int)oWS_inputInfo.Cells[2, 2].Value2;
+            attas.numSlots = (int)oWS_inputInfo.Cells[3, 2].Value2;
+            attas.numDays = (int)oWS_inputInfo.Cells[4, 2].Value2;
+            attas.numTimes = (int)oWS_inputInfo.Cells[5, 2].Value2;
+            attas.numSegments = (int)oWS_inputInfo.Cells[6, 2].Value2;
+            numSlotSegmentRules = (int)oWS_inputInfo.Cells[7, 2].Value2;
+            attas.numSubjects = (int)oWS_inputInfo.Cells[8, 2].Value2;
+            attas.numAreas = (int)oWS_inputInfo.Cells[9, 2].Value2;
+            attas.numBackupInstructors = (int)oWS_inputInfo.Cells[10, 2].Value2;
+        }
+        catch
+        {
+            throw new Exception($"Missing data in info sheet!");
+        }
         // NAME
         classNames = excelToNameArray(oWS_tasks, attas.numTasks, true, 2, 1);
         slotNames = excelToNameArray(oWS_slotConflict, attas.numSlots, true, 2, 1);
         instructorNames = excelToNameArray(oWS_instructorSubject, attas.numInstructors, true, 2, 1);
         subjectNames = excelToNameArray(oWS_instructorSubject, attas.numSubjects, false, 1, 2);
+        areaNames = excelToNameArray(oWS_areaDistance,attas.numAreas, true,2, 1);
         // SLOT
-        attas.slotConflict = excelToArray(oWS_slotConflict, 2, 2, attas.numSlots, attas.numSlots);
-        attas.slotDay = excelToArray(oWS_slotDay, 2, 2, attas.numSlots, attas.numDays);
-        attas.slotTime = excelToArray(oWS_slotTime, 2, 2, attas.numSlots, attas.numTimes);
+        attas.slotConflict = excelToArray(oWS_slotConflict, 2, 2, attas.numSlots, attas.numSlots,0,1);
+        attas.slotDay = excelToArray(oWS_slotDay, 2, 2, attas.numSlots, attas.numDays,0,1);
+        attas.slotTime = excelToArray(oWS_slotTime, 2, 2, attas.numSlots, attas.numTimes,0,1);
         attas.slotSegment = new int[attas.numSlots, attas.numDays, attas.numSegments];
         for (int i = 0; i < numSlotSegmentRules; i++)
         {
+            if(oWS_slotSegment.Cells[i + 2, 1].Value2 == null)
+            {
+                throw new Exception($"Missing value at {oWS_slotSegment} {i + 2} - 1");
+            }
             int slot = Array.IndexOf(slotNames, (string)oWS_slotSegment.Cells[i + 2, 1].Value2);
-            int day = (int)(double)oWS_slotSegment.Cells[i + 2, 2].Value2 - 1;
-            int segment = (int)(double)oWS_slotSegment.Cells[i + 2, 3].Value2 - 1;
+            if(slot == -1)
+            {
+                throw new Exception($"Cannot find value {(string)oWS_slotSegment.Cells[i + 2, 1].Value2} at {oWS_slotSegment} {i+2} - 1 in name array to map!");
+            }
+            int day = 0;
+            if(oWS_slotSegment.Cells[i + 2, 2].Value2 == null) 
+            {
+                throw new Exception($"Missing value at {oWS_slotSegment} {i + 2} - 2");
+            }
+            try
+            {
+                day = (int)(double)oWS_slotSegment.Cells[i + 2, 2].Value2 - 1; ;
+                if (!(0 <= day && day < attas.numDays))
+                    throw new Exception("Value must be in range!");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Invalid value at sheet {oWS_slotSegment} {i + 2} - 2");
+            }
+
+            int segment = 0;
+            if (oWS_slotSegment.Cells[i + 2, 3].Value2 == null)
+            {
+                throw new Exception($"Missing value at {oWS_slotSegment} {i + 2} - 3");
+            }
+            try
+            {
+                segment = (int)(double)oWS_slotSegment.Cells[i + 2, 3].Value2 - 1;
+                if (!(0 <= segment && segment < attas.numSegments))
+                    throw new Exception("Value must be in range!");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Invalid value at sheet {oWS_slotSegment} {i + 2} - 3");
+            }
+            
             attas.slotSegment[slot, day, segment] = 1;
         }
-        attas.patternCost = flattenArray(excelToArray(oWS_patternCost, 2, 2, (1 << attas.numSegments), 1));
+        attas.patternCost = flattenArray(excelToArray(oWS_patternCost, 2, 2, (1 << attas.numSegments), 1,0,attas.numSegments));
         // INSTRUCTOR
-        attas.instructorSubjectPreference = excelToArray(oWS_instructorSubject, 2, 2, attas.numInstructors, attas.numSubjects);
+        attas.instructorSubjectPreference = excelToArray(oWS_instructorSubject, 2, 2, attas.numInstructors, attas.numSubjects,0,5);
         attas.instructorSubject = toBinaryArray(attas.instructorSubjectPreference);
-        attas.instructorSlotPreference = excelToArray(oWS_instructorSlot, 2, 2, attas.numInstructors, attas.numSlots);
+        attas.instructorSlotPreference = excelToArray(oWS_instructorSlot, 2, 2, attas.numInstructors, attas.numSlots,0,5);
         attas.instructorSlot = toBinaryArray(attas.instructorSlotPreference);
-        attas.instructorQuota = flattenArray(excelToArray(oWS_instructorQuota, 2, 3, attas.numInstructors, 1));
-        attas.instructorMinQuota = flattenArray(excelToArray(oWS_instructorQuota, 2, 2, attas.numInstructors, 1));
+        attas.instructorQuota = flattenArray(excelToArray(oWS_instructorQuota, 2, 3, attas.numInstructors, 1,0, Int32.MaxValue));
+        attas.instructorMinQuota = flattenArray(excelToArray(oWS_instructorQuota, 2, 2, attas.numInstructors, 1,0, Int32.MaxValue));
         attas.instructorPreassign = new List<(int, int, int)>();
         for (int i = 0; i < attas.numInstructors; i++)
             for (int j = 0; j < attas.numSlots; j++)
@@ -102,23 +181,32 @@ static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] cla
                 }
             }
         // AREA
-        attas.areaDistance = excelToArray(oWS_areaDistance, 2, 2, attas.numAreas, attas.numAreas);
-        attas.areaSlotCoefficient = excelToArray(oWS_areaSlotCoefficient, 2, 2, attas.numSlots, attas.numSlots);
+        attas.areaDistance = excelToArray(oWS_areaDistance, 2, 2, attas.numAreas, attas.numAreas,0 , Int32.MaxValue);
+        attas.areaSlotCoefficient = excelToArray(oWS_areaSlotCoefficient, 2, 2, attas.numSlots, attas.numSlots,0, Int32.MaxValue);
         // TASK
         attas.taskSubjectMapping = excelToMapping(oWS_tasks, attas.numTasks, 2, subjectNames);
         attas.taskSlotMapping = excelToMapping(oWS_tasks, attas.numTasks, 4, slotNames);
         attas.taskAreaMapping = new int[attas.numTasks];
         for (int i = 0; i < attas.numTasks; i++)
         {
-            var c = oWS_tasks.Cells[i + 2, 7].Value2[0];
-            switch (c)
+            string cellValue = oWS_tasks.Cells[i + 2, 7].Value2;
+            if (cellValue == null)
             {
-                case 'A':
-                    attas.taskAreaMapping[i] = 0; break;
-                case 'B':
-                    attas.taskAreaMapping[i] = 1; break;
-                case 'D':
-                    attas.taskAreaMapping[i] = 2; break;
+                throw new Exception($"Missing task - {i + 1} location ");
+            }
+            bool flag = false;
+            for(int j=0;j<attas.numAreas;j++)
+            {
+                if (cellValue.Contains(areaNames[j]))
+                {
+                    attas.taskAreaMapping[i] = j;
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag)
+            {
+                throw new Exception($"Cannot recognize location {cellValue} at task - {i+1}");
             }
         }
         oWB.Close();
@@ -128,9 +216,9 @@ static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] cla
     catch (Exception ex)
     {
         AnsiConsole.Markup($"[red]{ex.Message}[/]\n");
-        if ( oWB != null ) 
+        if (oWB != null)
             oWB.Close();
-        if ( oXL != null ) 
+        if (oXL != null)
             oXL.Quit();
         return false;
     }
@@ -185,7 +273,7 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
         Workbook? oWB = null;
         try
         {
-            string[] statisticColumn = new string[] { "Quota ","Teaching Day","Teaching Time","Waiting Time","Subject Diversity","Quota Available","Walking Distance", "Subject Preference","Slot Preference"};
+            string[] statisticColumn = new string[] { "Quota ","Teaching Day","Teaching Time","Waiting Time","Subject Diversity","Quota Available","Walking Distance", "Subject Preference","Slot Preference","Day Efficiency","Time Efficiency","Subject Preference Average","Slot Preference Average"};
             DateTime currentTime = DateTime.Now;
             string currentTimeString = currentTime.ToString("yyyy-MM-ddTHH-mm-ss");
             AnsiConsole.Markup($"\nExport Result into [underline green]{outputPath}\\result_{currentTimeString}.xlsx[/]\n\n");
@@ -258,11 +346,16 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
                         dataQuotaAvailable[currentId] = attas.instructorQuota[currentId] - objQuota;
                         dataWalkingDistance[currentId] = calObjWalkingDistance(tasks, attas);
                         if (objQuota != 0)
-                        {
+                        {    
                             dataDayEfficiency[currentId] = (int)  (100.0*objQuota / (objDay.Sum()*2.0));
                             dataTimeEfficiency[currentId] = (int) (100.0*objQuota / flattenArray(objTime).Sum());
                             dataSubjectPreference[currentId] =(int) (100.0*objSubjectPreference / objQuota);
                             dataSlotPreference[currentId] =(int) (100.0*objSlotPreference/ objQuota);
+
+                            oWS.Cells[currentId + 2, 11] = dataDayEfficiency[currentId] / 100.0;
+                            oWS.Cells[currentId + 2, 12] = dataTimeEfficiency[currentId] / 100.0;
+                            oWS.Cells[currentId + 2, 13] = dataSubjectPreference[currentId] / 100.0;
+                            oWS.Cells[currentId + 2, 14] = dataSlotPreference[currentId] / 100.0;
                         }
                         else
                         {
@@ -270,6 +363,11 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
                             dataTimeEfficiency[currentId] = 100;
                             dataSubjectPreference[currentId] = 500;
                             dataSlotPreference[currentId] = 500;
+
+                            oWS.Cells[currentId + 2, 11] = 1;
+                            oWS.Cells[currentId + 2, 12] = 1;
+                            oWS.Cells[currentId + 2, 13] = 5;
+                            oWS.Cells[currentId + 2, 14] = 5;
                         }
                             
 
@@ -334,6 +432,11 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
                     dataTimeEfficiency[currentId] = (int)(100.0 * objQuota / flattenArray(objTime).Sum());
                     dataSubjectPreference[currentId] = (int)(100.0 * objSubjectPreference / objQuota);
                     dataSlotPreference[currentId] = (int)(100.0 * objSlotPreference / objQuota);
+
+                    oWS.Cells[currentId + 2, 11] = dataDayEfficiency[currentId] / 100.0;
+                    oWS.Cells[currentId + 2, 12] = dataTimeEfficiency[currentId] / 100.0;
+                    oWS.Cells[currentId + 2, 13] = dataSubjectPreference[currentId] / 100.0;
+                    oWS.Cells[currentId + 2, 14] = dataSlotPreference[currentId] / 100.0;
                 }
                 else
                 {
@@ -341,6 +444,11 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
                     dataTimeEfficiency[currentId] = 100;
                     dataSubjectPreference[currentId] = 500;
                     dataSlotPreference[currentId] = 500;
+
+                    oWS.Cells[currentId + 2, 11] = 1;
+                    oWS.Cells[currentId + 2, 12] = 1;
+                    oWS.Cells[currentId + 2, 13] = 5;
+                    oWS.Cells[currentId + 2, 14] = 5;
                 }
 
             }
@@ -357,7 +465,10 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
                     oWS.Cells[i + 2, 8] = 0;
                     oWS.Cells[i + 2, 9] = 0;
                     oWS.Cells[i + 2, 10] = 0;
-
+                    oWS.Cells[i + 2, 11] = 1;
+                    oWS.Cells[i + 2, 12] = 1;
+                    oWS.Cells[i + 2, 13] = 5;
+                    oWS.Cells[i + 2, 14] = 5;
 
                     dataQuota[i] = 0;
                     dataWaitingTime[i] = 0;
@@ -552,11 +663,19 @@ static int[] excelToMapping(Worksheet oSheet,int numRows,int col, string[] names
     for (int i = 2; i<=numRows+1; i++)
     {
         oRng = oSheet.Cells[i, col];
+        if(oRng.Value2 == null)
+        {
+            throw new Exception($"Missing data at {oSheet.Name} {i} - {col} !");
+        }
         mapping[i - 2]= Array.IndexOf(namesArray, oRng.Value2);
+        if (mapping[i - 2] == -1)
+        {
+            throw new Exception($"Cannot find value {oRng.Value2} at {oSheet.Name} {i} - {col} in name array to map!");
+        }
     }
     return mapping;
 }
-static int[,] excelToArray(Worksheet oSheet, int startRow, int startCol, int numRows, int numCols)
+static int[,] excelToArray(Worksheet oSheet, int startRow, int startCol, int numRows, int numCols,int lb,int ub)
 {
     Range oRng;
     oRng = oSheet.Cells[startRow, startCol].Resize[numRows, numCols];
@@ -566,7 +685,21 @@ static int[,] excelToArray(Worksheet oSheet, int startRow, int startCol, int num
     {
         for (int j = 1; j <= numCols; j++)
         {
-            data[i - 1, j - 1] = (int)(double)values[i, j];
+            if(values[i, j] == null)
+            {
+                throw new Exception($"Missing value at sheet {oSheet.Name} {startRow+i-1} - {startCol+j-1} !");
+            }
+            try
+            {
+                data[i - 1, j - 1] = (int)(double)values[i, j];
+                if (!(lb <= data[i - 1, j - 1] && data[i - 1, j - 1] <= ub))
+                    throw new Exception("Value must be in range!");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Invalid value at sheet {oSheet.Name} {startRow + i - 1} - {startCol + j - 1}");
+            }
+            
         }
     }
     return data;
@@ -581,6 +714,8 @@ static string[] excelToNameArray(Worksheet oSheet, int count, bool isColumn, int
         object[,] values = (object[,])oRng.Value;
         for (int i = 1; i <= count; i++)
         {
+            if (values[i, 1] == null)
+                throw new Exception($"Missing name at sheet {oSheet.Name} {i+1} - {1} !");
             data[i - 1] = (string)values[i, 1];
         }
     }
@@ -590,6 +725,8 @@ static string[] excelToNameArray(Worksheet oSheet, int count, bool isColumn, int
         object[,] values = (object[,])oRng.Value;
         for (int i = 1; i <= count; i++)
         {
+            if(values[1, i] == null)
+                throw new Exception($"Missing name at sheet {oSheet.Name} {1} - {i+1} !");
             data[i - 1] = (string)values[1, i];
         }
     }

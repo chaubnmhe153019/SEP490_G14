@@ -116,7 +116,7 @@ namespace ATTAS_CORE
                 literals.Clear();
             }
             
-            //C-00 CONSTRAINT INSTRUCTOR QUOTA MUST IN RANGE
+            //C-05 CONSTRAINT INSTRUCTOR QUOTA MUST IN RANGE
             List<IntVar> taskAssigned = new List<IntVar>();
             foreach (int i in allInstructorsWithBackup)
             {
@@ -671,12 +671,14 @@ namespace ATTAS_CORE
         }
         public List<List<(int, int)>> getResults(CpSolver solver)
         {
+            long test = 0;
             List<(int, int)> result = new List<(int, int)>();
             foreach (int n in allTasks)
             {
                 bool isAssigned = false;
                 foreach (int i in allInstructors)
                 {
+                    test += solver.Value(assigns[(n, i)]);
                     if (solver.Value(assigns[(n, i)]) == 1L)
                     {
                         isAssigned = true;
@@ -688,6 +690,7 @@ namespace ATTAS_CORE
                     result.Add((n, -1));
                 }
             }
+            Console.WriteLine($"TEST VALUE= {test}");
             List<List<(int, int)>> results = new List<List<(int, int)>> { result };
             return results;
         }
