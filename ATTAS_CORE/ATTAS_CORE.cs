@@ -116,16 +116,6 @@ namespace ATTAS_CORE
                 literals.Clear();
             }
             
-            //C-05 CONSTRAINT INSTRUCTOR QUOTA MUST IN RANGE
-            List<IntVar> taskAssigned = new List<IntVar>();
-            foreach (int i in allInstructorsWithBackup)
-            {
-                foreach (int n in allTasks)
-                    taskAssigned.Add(assigns[(n, i)]);
-                model.AddLinearConstraint(LinearExpr.Sum(taskAssigned), instructorMinQuota[i], instructorQuota[i]);
-                taskAssigned.Clear();
-            }
-            
             List<List<int>> task_in_this_slot = new List<List<int>>();
             List<List<int>> task_conflict_with_this_slot = new List<List<int>>();
 
@@ -178,14 +168,29 @@ namespace ATTAS_CORE
                 }
             }
             //C-03 INSTRUCTOR MUST HAVE ABILITY FOR THAT SUBJECT
-            foreach (int n in allTasks)
-                foreach (int i in allInstructors)
-                    model.Add(instructorSubject[i, taskSubjectMapping[n]] - assigns[(n, i)] > -1);
             //C-04 INSTRUCTOR MUST BE ABLE TO TEACH IN THAT SLOT
             foreach (int n in allTasks)
                 foreach (int i in allInstructors)
-                    model.Add(instructorSlot[i, taskSlotMapping[n]] - assigns[(n, i)] > -1);
+                    if (instructorSubject[i, taskSubjectMapping[n]] == 0 || instructorSlot[i, taskSlotMapping[n]] == 0)
+                    {
+                        model.AddHint(assigns[(n, i)], 0);
+                        model.Add(assigns[(n, i)] == 0);
+                    }
             
+            //C-05 CONSTRAINT INSTRUCTOR QUOTA MUST IN RANGE
+            List<IntVar> taskAssigned = new List<IntVar>();
+            foreach (int i in allInstructorsWithBackup)
+            {
+                foreach (int n in allTasks)
+                    taskAssigned.Add(assigns[(n, i)]);
+                model.AddLinearConstraint(LinearExpr.Sum(taskAssigned), instructorMinQuota[i], instructorQuota[i]);
+                taskAssigned.Clear();
+            }
+            /*  foreach (int n in allTasks)
+                  foreach (int i in allInstructors)
+            //model.Add(instructorSubject[i, taskSubjectMapping[n]] - assigns[(n, i)] > -1);
+                      model.Add(instructorSlot[i, taskSlotMapping[n]] - assigns[(n, i)] > -1);*/
+
         }
         #region Objective Function
 
