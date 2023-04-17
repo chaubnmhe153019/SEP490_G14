@@ -4,12 +4,15 @@ using System.Runtime.InteropServices;
 using Microsoft.Office.Interop.Excel;
 using Range = Microsoft.Office.Interop.Excel.Range;
 using System.Configuration;
+using System.Text.RegularExpressions;
 
 string inputExcelFilePath = "";
 string outputExcelFolderPath = "";
-bool inputPathFlag = false;
-bool outputPathFlag = false;
 
+bool inputPathFlag = false;
+bool inputRegexFlag = false; 
+bool outputPathFlag = false;
+bool outputRegexFlag = false;
 
 ATTAS_ORTOOLS attas = new ATTAS_ORTOOLS();
 
@@ -27,29 +30,38 @@ attas.strategyOption = int.Parse(ConfigurationManager.AppSettings["strategy"]);
 bool read = false;
 List<List<(int, int)>>? results = null;
 
+string xlsxPattern =@"^.*\.xlsx$";
 do
 {
-    inputExcelFilePath = $@"{AnsiConsole.Prompt(new TextPrompt<string>(" Input file path: "))}";
+    inputExcelFilePath = $@"{AnsiConsole.Prompt(new TextPrompt<string>(" Input file path ( D:\\InputFolder\\InputExcel.xlsx ): "))}";
     inputPathFlag = File.Exists(inputExcelFilePath);
     if (!inputPathFlag)
-        AnsiConsole.Markup("[red]Input File Doesn't Existed[/]\n");
+        AnsiConsole.Markup("[red]Input File Doesn't Existed![/]\n");
+    inputRegexFlag = Regex.IsMatch(inputExcelFilePath, xlsxPattern);
+    if (!inputRegexFlag)
+        AnsiConsole.Markup("[red]This isn't .xlsx file![/]\n");
 }
-while (!inputPathFlag);
+while (!inputPathFlag || !inputRegexFlag);
+
+string pattern = @"^([A-Za-z]:|\\{2}([-\w]+|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))\\(([^""*/:?|<>\\,;[\]+=.\x00-\x20]|\.[.\x20]*[^""*/:?|<>\\,;[\]+=.\x00-\x20])([^""*/:?|<>\\,;[\]+=\x00-\x1F]*[^""*/:?|<>\\,;[\]+=\x00-\x20])?))\\([^""*/:?|<>\\.\x00-\x20]([^""*/:?|<>\\\x00-\x1F]*[^""*/:?|<>\\.\x00-\x20])?\\)*$";
 do
 {
-    outputExcelFolderPath = AnsiConsole.Prompt(new TextPrompt<string>(" Output path: "));
+    outputExcelFolderPath = AnsiConsole.Prompt(new TextPrompt<string>(" Output path ( D:\\OutputFolder\\ ): "));
     outputPathFlag = Directory.Exists(outputExcelFolderPath);
     if(!outputPathFlag)
-        AnsiConsole.Markup("[red]Output Path Doesn't Existed[/]\n");
+        AnsiConsole.Markup("[red]Output Path Doesn't Existed![/]\n");
+    outputRegexFlag = Regex.IsMatch(outputExcelFolderPath, pattern);
+    if(!outputRegexFlag)
+        AnsiConsole.Markup("[red]Output Path Format Doesn't Correct![/]\n");
 }
-while (!outputPathFlag);
+while (!outputPathFlag || !outputRegexFlag);
 
 /*
  *  * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\test.xlsx"
  * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\InputCF_SU23.xlsx"
  * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\InputBUG.xlsx"
-inputExcelFilePath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\test.xlsx";
-outputExcelFolderPath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\results";*/
+inputExcelFilePath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\InputCF_SU23.xlsx";
+outputExcelFolderPath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\results\";*/
 
 
 read = readInputExcel(inputExcelFilePath, attas, ref classNames, ref slotNames, ref instructorNames, ref subjectNames,ref areaNames);
@@ -66,7 +78,7 @@ static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] cla
     Workbook? oWB = null;
     try
     {
-        AnsiConsole.Markup($"\nImport Data From [underline green]{inputPath}[/]\n\n");
+        AnsiConsole.MarkupLine("\n{0} [underline green]{1}[/]\n", "Import Data From", $"{inputPath}".EscapeMarkup());
         oXL = new Application();
         oWB = oXL.Workbooks.Open(inputPath);
         if(oWB.Sheets.Count < 13)
@@ -215,7 +227,7 @@ static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] cla
     }
     catch (Exception ex)
     {
-        AnsiConsole.Markup($"[red]{ex.Message}[/]\n");
+        Console.WriteLine(ex.Message);
         if (oWB != null)
             oWB.Close();
         if (oXL != null)
@@ -276,7 +288,7 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
             string[] statisticColumn = new string[] { "Quota ","Teaching Day","Teaching Time","Waiting Time","Subject Diversity","Quota Available","Walking Distance", "Subject Preference","Slot Preference","Day Efficiency","Time Efficiency","Subject Preference Average","Slot Preference Average"};
             DateTime currentTime = DateTime.Now;
             string currentTimeString = currentTime.ToString("yyyy-MM-ddTHH-mm-ss");
-            AnsiConsole.Markup($"\nExport Result into [underline green]{outputPath}\\result_{currentTimeString}.xlsx[/]\n\n");
+            AnsiConsole.MarkupLine("\n{0} [underline green]{1}[/]\n", "Export Result Into", $"{outputPath}result_{currentTimeString}.xlsx".EscapeMarkup());
             List<(int, int)> tmp = results[0];
             oXL = new Application();
             oWB = oXL.Workbooks.Add();
@@ -599,13 +611,13 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
             }
             oWS.Columns.AutoFit();
             #endregion
-            oWB.SaveAs($@"{outputPath}\result_{currentTimeString}.xlsx");
+            oWB.SaveAs($@"{outputPath}result_{currentTimeString}.xlsx");
             oWB.Close();
             oXL.Quit();
         }
         catch (Exception ex)
         {
-            AnsiConsole.Markup($"[red]{ex.Message}[/]\n\n");
+            Console.WriteLine(ex.Message);
             if (oWB != null)
                 oXL.DisplayAlerts = false;
                 oWB.Close();
@@ -616,7 +628,7 @@ static void writeOutputExcel(string outputPath,ATTAS_ORTOOLS attas, List<List<(i
     }
     else
     {
-        AnsiConsole.Markup("\n[red]No solution to export[/]\n\n");
+        Console.Write("\nNo solution to export!\n\n");
     }
 }
 #region Objective Calculate
