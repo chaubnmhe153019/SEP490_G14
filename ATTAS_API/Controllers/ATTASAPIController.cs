@@ -18,8 +18,8 @@ namespace ATTAS_API.Controllers
             _logger = logger;
         }
 
-        [HttpPost("execute")]
-        public IActionResult execute([FromBody] Data data)
+        [HttpPost("excecute")]
+        public IActionResult excecute([FromBody] Data data)
         {
             SqlServerConnector connector = new SqlServerConnector("SAKURA", "attas", "sa", "12345678");
             if( connector.validToken(data.token) ) { 

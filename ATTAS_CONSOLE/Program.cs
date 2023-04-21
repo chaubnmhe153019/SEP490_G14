@@ -56,6 +56,14 @@ do
 }
 while (!outputPathFlag || !outputRegexFlag);
 
+/*
+ *  * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\test.xlsx"
+ * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\InputCF_SU23.xlsx"
+ * @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\InputBUG.xlsx"
+inputExcelFilePath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\inputs\InputCF_SU23.xlsx";
+outputExcelFolderPath = @"D:\FPT\SEP490_G14\ATTAS_ORTOOLS\results\";*/
+
+
 read = readInputExcel(inputExcelFilePath, attas, ref classNames, ref slotNames, ref instructorNames, ref subjectNames,ref areaNames);
 cleanCOM();
 if (read)
@@ -64,8 +72,6 @@ if (read)
     writeOutputExcel(outputExcelFolderPath, attas, results, classNames, slotNames, instructorNames, subjectNames);
     cleanCOM();
 }
-Console.Write("\nPress anything to exit.");
-Console.ReadKey();
 static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] classNames,ref string[] slotNames,ref string[] instructorNames,ref string[] subjectNames,ref string[] areaNames)
 {
     Application? oXL = null;
