@@ -22,7 +22,27 @@ CREATE TABLE [session] (
   [id] int IDENTITY(1,1) PRIMARY KEY,
   [sessionHash] nvarchar(255),
   [statusId] int,
-  [solutionCount] int
+  [solutionCount] int,
+  [maxSearchingTime] int,
+  [strategyOption] int,
+  [taskCount] int,
+  [instructorCount] int,
+  [slotCount] int,
+  [dayCount] int,
+  [timeCount] int,
+  [segmentCount] int,
+  [slotSegmentRuleCount] int,
+  [subjectCount] int,
+  [areaCount] int,
+  [backupCount] int
+)
+GO
+
+CREATE TABLE [settingObjective] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [obj] int,
+  [value] int
 )
 GO
 
@@ -44,7 +64,9 @@ CREATE TABLE [instructor] (
   [id] int IDENTITY(1,1) PRIMARY KEY,
   [sessionId] int,
   [businessId] nvarchar(255),
-  [order] int
+  [order] int,
+  [minQuota] int,
+  [maxQuota] int
 )
 GO
 
@@ -81,6 +103,122 @@ CREATE TABLE [solution] (
 )
 GO
 
+CREATE TABLE [slotConflict] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [timeOrderR] int,
+  [timeOrderC] int
+)
+GO
+
+CREATE TABLE [slotDay] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [timeOrderR] int,
+  [dayOrderC] int
+)
+GO
+
+CREATE TABLE [slotTime] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [timeOrderR] int,
+  [timeOrderC] int
+)
+GO
+
+CREATE TABLE [slotSegment] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [timeOrder] int,
+  [dayOrder] int,
+  [segmentOrder] int
+)
+GO
+
+CREATE TABLE [patternCost] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [order] int,
+  [value] int
+)
+GO
+
+CREATE TABLE [instructorSubject] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [instructorOrder] int,
+  [subjectOrder] int,
+  [value] int
+)
+GO
+
+CREATE TABLE [instructorTime] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [instructorOrder] int,
+  [timeOrder] int,
+  [value] int
+)
+GO
+
+CREATE TABLE [preassign] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [instructorOrder] int,
+  [taskOrder] int,
+  [value] int
+)
+GO
+
+CREATE TABLE [areaDistance] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [areaOrderR] int,
+  [areaOrderC] int,
+  [value] int
+)
+GO
+
+CREATE TABLE [areaCoefficient] (
+  [id] int IDENTITY(1,1) PRIMARY KEY,
+  [sessionId] int,
+  [timeOrderR] int,
+  [timeOrderC] int,
+  [value] int
+)
+GO
+
+ALTER TABLE [slotConflict] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [slotDay] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [slotTime] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [slotSegment] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [patternCost] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [instructorSubject] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [instructorTime] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [preassign] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [areaDistance] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
+ALTER TABLE [areaCoefficient] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
+
 ALTER TABLE [time] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
 GO
 
@@ -93,11 +231,13 @@ GO
 ALTER TABLE [result] ADD FOREIGN KEY ([solutionId]) REFERENCES [solution] ([id])
 GO
 
+
 ALTER TABLE [session] ADD FOREIGN KEY ([statusId]) REFERENCES [status] ([id])
 GO
 
 ALTER TABLE [solution] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
 GO
+
 
 INSERT INTO token (tokenHash,[user]) VALUES ('token','FPT');
 
@@ -116,3 +256,4 @@ select * from [time]
 select * from instructor
 select * from [status]
 select * from token
+select * from settingObjective
