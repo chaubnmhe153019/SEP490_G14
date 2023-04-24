@@ -81,15 +81,12 @@ namespace ATTAS_API.Controllers
         {
             Data _data = (Data)data;
             SqlServerConnector connector = new SqlServerConnector("SAKURA","attas","sa","12345678");
-            int sessionId = connector.addSession(_data.sessionHash);
+            int sessionId = connector.addSession(_data.sessionHash,_data.Setting.maxSearchingTime,_data.Setting.strategy,_data.numTasks,_data.numInstructors,_data.numSlots,_data.numDays,_data.numTimes,_data.numSegments,_data.numSegmentRules,_data.numSubjects,_data.numAreas,_data.backupInstructor);
             foreach(Task task in _data.tasks)
             {
                 connector.addTask(sessionId, task.Id, task.Order);
             }
-            foreach(Instructor instructor in _data.instructors)
-            {
-                connector.addInstructor(sessionId, instructor.Id, instructor.Order);
-            }
+            
             foreach(Slot slot in _data.slots)
             {
                 connector.addTime(sessionId, slot.Id, slot.Order);
@@ -100,6 +97,13 @@ namespace ATTAS_API.Controllers
             attas.strategyOption = _data.Setting.strategy;
             attas.objOption = _data.Setting.objectiveOption.ToArray();
             attas.objWeight = _data.Setting.objectiveWeight.ToArray();
+            for (int i=0 ; i < attas.objWeight.Length; i++)
+            {
+                if (attas.objOption[i] > 0)
+                {
+                    connector.addSettingObjective(sessionId, i, attas.objWeight[i]);
+                }
+            }
             attas.debugLoggerOption = true;
             //INPUT
             if (attas.debugLoggerOption)
@@ -117,30 +121,99 @@ namespace ATTAS_API.Controllers
             attas.numAreas = _data.numAreas;
             attas.numBackupInstructors = _data.backupInstructor;
             attas.slotConflict = listToArray(_data.slotConflict);
+            for (int i = 0; i < attas.slotConflict.GetLength(0); i++)
+            {
+                for (int j = 0; j < attas.slotConflict.GetLength(1); j++)
+                {
+                    if (attas.slotConflict[i, j] > 0)
+                        connector.addSlotConflict(sessionId, i, j);
+                }
+            }
             attas.slotDay = listToArray(_data.slotDay);
+            for (int i = 0; i < attas.slotDay.GetLength(0); i++)
+            {
+                for (int j = 0; j < attas.slotDay.GetLength(1); j++)
+                {
+                    if (attas.slotDay[i, j] > 0)
+                        connector.addSlotDay(sessionId, i, j);
+                }
+            }
             attas.slotTime = listToArray(_data.slotTime);
+            for (int i = 0; i < attas.slotTime.GetLength(0); i++)
+            {
+                for (int j = 0; j < attas.slotTime.GetLength(1); j++)
+                {
+                    if (attas.slotTime[i, j] > 0)
+                        connector.addSlotTime(sessionId, i, j);
+                }
+            }
             attas.slotSegment = new int[attas.numSlots, attas.numDays, attas.numSegments]; 
             for (int i = 0; i < numSegmentRule; i++)
             {
                 attas.slotSegment[_data.slotSegment[i][0], _data.slotSegment[i][1], _data.slotSegment[i][2]] = 1;
+                connector.addSlotSegment(sessionId, _data.slotSegment[i][0], _data.slotSegment[i][1], _data.slotSegment[i][2]);
             }
             attas.patternCost = _data.patternCost.ToArray();
+            for (int i = 0; i< attas.patternCost.Length; i++) 
+            {
+                if (attas.patternCost[i] > 0)
+                    connector.addPatternCost(sessionId, i, attas.patternCost[i]);
+            }
             attas.instructorSubjectPreference = listToArray(_data.instructorSubject);
+            for (int i = 0; i < attas.instructorSubjectPreference.GetLength(0); i++)
+            {
+                for (int j = 0; j < attas.instructorSubjectPreference.GetLength(1); j++)
+                {
+                    if(attas.instructorSubjectPreference[i, j] > 0)
+                        connector.addInstructorSubject(sessionId, i, j, attas.instructorSubjectPreference[i,j]);
+                }
+            }
             attas.instructorSubject = toBinaryArray(attas.instructorSubjectPreference);
             attas.instructorSlotPreference = listToArray(_data.instructorSlot);
+            for (int i = 0; i < attas.instructorSlotPreference.GetLength(0); i++)
+            {
+                for (int j = 0; j < attas.instructorSlotPreference.GetLength(1); j++)
+                {
+                    if (attas.instructorSlotPreference[i, j] > 0)
+                        connector.addInstructorTime(sessionId, i, j, attas.instructorSlotPreference[i, j]);
+                }
+            }
             attas.instructorSlot = toBinaryArray(attas.instructorSlotPreference);
             attas.instructorQuota = _data.instructorQuota.ToArray();
             attas.instructorMinQuota = _data.instructorMinQuota.ToArray();
+            int index = 0;
+            foreach (Instructor instructor in _data.instructors)
+            {   
+                connector.addInstructor(sessionId, instructor.Id, instructor.Order, attas.instructorMinQuota[index], attas.instructorQuota[index]);
+                index++;
+            }
             attas.instructorPreassign = new List<(int, int, int)>();
             if (_data.preassigns != null)
             {
                 foreach (Preassign item in _data.preassigns)
                 {
-                    attas.instructorPreassign.Add((item.instructorOrder, item.taskOrder, 1));
+                    attas.instructorPreassign.Add((item.instructorOrder, item.taskOrder, item.type));
+                    connector.addPreassign(sessionId,item.instructorOrder,item.taskOrder, item.type);
                 }
             }
             attas.areaDistance = listToArray(_data.areaDistance);
+            for (int i = 0; i < attas.areaDistance.GetLength(0); i++)
+            {
+                for (int j = 0; j < attas.areaDistance.GetLength(1); j++)
+                {
+                    if (attas.areaDistance[i, j] > 0)
+                        connector.addAreaDistance(sessionId, i, j, attas.areaDistance[i, j]);
+                }
+            }
             attas.areaSlotCoefficient = listToArray(_data.areaSlotCoefficient);
+            for (int i = 0; i < attas.areaSlotCoefficient.GetLength(0); i++)
+            {
+                for (int j = 0; j < attas.areaSlotCoefficient.GetLength(1); j++)
+                {
+                    if (attas.areaSlotCoefficient[i, j] > 0)
+                        connector.addAreaCoefficient(sessionId, i, j, attas.areaSlotCoefficient[i, j]);
+                }
+            }
             attas.taskSubjectMapping = new int[attas.numTasks];
             attas.taskSlotMapping = new int[attas.numTasks];
             attas.taskAreaMapping = new int[attas.numTasks];
@@ -172,7 +245,6 @@ namespace ATTAS_API.Controllers
                     int objWalkingDistance = 0;
                     int objSubjectPreference = 0;
                     int objSlotPreference = 0;
-
                     int finalQuota = 0;
                     int finalDay = 0;
                     int finalTime = 0;

@@ -168,7 +168,7 @@ static bool readInputExcel(string inputPath,ATTAS_ORTOOLS attas,ref string[] cla
             
             attas.slotSegment[slot, day, segment] = 1;
         }
-        attas.patternCost = flattenArray(excelToArray(oWS_patternCost, 2, 2, (1 << attas.numSegments), 1,0,attas.numSegments));
+        attas.patternCost = flattenArray(excelToArray(oWS_patternCost, 2, 2, (1 << attas.numSegments), 1,0,Int32.MaxValue));
         // INSTRUCTOR
         attas.instructorSubjectPreference = excelToArray(oWS_instructorSubject, 2, 2, attas.numInstructors, attas.numSubjects,0,5);
         attas.instructorSubject = toBinaryArray(attas.instructorSubjectPreference);

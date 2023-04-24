@@ -148,7 +148,7 @@ namespace ATTAS_CORE
                     ILiteral tmp = model.NewBoolVar("");
                     model.Add(LinearExpr.Sum(taskAssignedThatSlot) > 0).OnlyEnforceIf(tmp);
                     model.Add(LinearExpr.Sum(taskAssignedThatSlot) == 0).OnlyEnforceIf(tmp.Not());
-                    model.Add(LinearExpr.Sum(taskAssignedConflictWithThatSlot) == 1).OnlyEnforceIf(tmp);
+                    model.Add(LinearExpr.Sum(taskAssignedConflictWithThatSlot) <= slotConflict[s,s]).OnlyEnforceIf(tmp);
                     taskAssignedThatSlot.Clear();
                     taskAssignedConflictWithThatSlot.Clear();
                 }
