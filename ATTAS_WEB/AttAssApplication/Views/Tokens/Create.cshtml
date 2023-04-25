@@ -1,0 +1,47 @@
+﻿@model AttAssApplication.Model.Token
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1 style="margin= 10px 0px 10px 0px">Create Access Tokens</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="TokenHash" class="control-label">TokenHash</label>
+                <input id="token-hash" asp-for="TokenHash" class="form-control" readonly/>
+                <span asp-validation-for="TokenHash" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="User" class="control-label"></label>
+                <input asp-for="User" class="form-control" />
+                <span asp-validation-for="User" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a class="btn btn-primary" asp-action="Index">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    const input = document.querySelector('#token-hash');
+
+    function generateToken(n) {
+        var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        var token = '';
+        for (var i = 0; i < n; i++) {
+            token += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return token;
+    }
+
+    input.value = generateToken(15);
+</script>
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
