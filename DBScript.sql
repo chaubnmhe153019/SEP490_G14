@@ -238,6 +238,8 @@ GO
 ALTER TABLE [solution] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
 GO
 
+ALTER TABLE [settingObjective] ADD FOREIGN KEY ([sessionId]) REFERENCES [session] ([id])
+GO
 
 INSERT INTO token (tokenHash,[user]) VALUES ('token','FPT');
 
@@ -247,13 +249,3 @@ INSERT INTO [status] (name) VALUES ('INFEASIBLE')
 INSERT INTO [status] (name) VALUES ('FEASIBLE')
 INSERT INTO [status] (name) VALUES ('OPTIMAL')
 
-
-select * from [session]
-select * from solution
-select * from result
-select * from task
-select * from [time]
-select * from instructor
-select * from [status]
-select * from token
-select * from settingObjective
