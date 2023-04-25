@@ -1,0 +1,48 @@
+﻿@model IEnumerable<AttAssApplication.Model.Session>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>View Generate History</h1>
+
+<table id="example" class="table table-striped table-bordered" style="width:100%">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.SessionId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.SessionHash)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.SolutionCount)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Status)
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.SessionId)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.SessionHash)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.SolutionCount)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Status.Name)
+                </td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.SessionId">Details</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
